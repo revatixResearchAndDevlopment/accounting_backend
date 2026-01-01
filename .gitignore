@@ -1,0 +1,13 @@
+# Dependencies
+/node_modules
+
+# Environment Variables and Secrets
+.env
+/config/*.env
+/secrets/
+
+# Logs and Build Artifacts
+*.log
+npm-debug.log*
+/build
+/dist
