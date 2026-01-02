@@ -4,19 +4,38 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3005;
+const PORT = process.env.API_PORT || 3005;
+const cookieParser = require('cookie-parser');
+app.set('trust proxy', true);
 
-// Middleware
- // Security headers
-app.use(cors());   // Allow cross-origin requests
+const allowed_origins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [];
+const cors_options = {
+  origin:function(origin,callback){
+    if(!origin) return callback(null,true);
+    if(allowed_origins.indexOf(origin) === -1){
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null,true);
+  },
+  methods:'GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH',
+  credentials:true
+};
 
+app.use(cors(cors_options));  
+app.use(cookieParser());
+
+const login = require('./routes/login');
+
+
+app.use("/login",login);
 
 // Basic Test Route
-app.get('/api/health', (req, res) => {
+app.get('/', (req, res) => {
   res.json({ status: 'active', message: 'Accounting API is running' });
 });
 
-// Start Server
+
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(` Server running on port ${PORT}`);
 });
