@@ -8,13 +8,14 @@ const PORT = process.env.API_PORT || 3005;
 const cookieParser = require('cookie-parser');
 app.set('trust proxy', true);
 
-const allowed_origins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [];
+const allowed_origins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()) : [];
 const cors_options = {
   origin:function(origin,callback){
     if(!origin) return callback(null,true);
     if(allowed_origins.indexOf(origin) === -1){
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
+      console.error(`Blocked by CORS: ${origin}`);
     }
     return callback(null,true);
   },
