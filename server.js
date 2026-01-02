@@ -8,7 +8,8 @@ const PORT = process.env.API_PORT || 3005;
 const cookieParser = require('cookie-parser');
 app.set('trust proxy', true);
 
-const allowed_origins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()) : [];
+const allowed_origins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(o => o.trim().replace(/['"\[\]]/g, '')) : [];
+
 const cors_options = {
   origin:function(origin,callback){
     if(!origin) return callback(null,true);
