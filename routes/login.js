@@ -14,7 +14,7 @@ app.post("/",async (req, res) => {
 
     
     try {
-        const [result] = await db.query('SELECT * FROM users WHERE username = ? ', [username]);
+        const [result] = await db.query('SELECT * FROM employees WHERE username = ? ', [username]);
         if (result.length === 0) {
             return res.status(401).json({ message: 'Invalid username or password' });
         }
