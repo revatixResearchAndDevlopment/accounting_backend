@@ -20,7 +20,7 @@ app.post("/",async (req, res) => {
                 GROUP_CONCAT(c.company_id) as company_ids
             FROM employees e
             INNER JOIN user_company_mapping ucm ON e.employee_id = ucm.employee_id
-            INNER JOIN companies c ON ucm.company_id = c.company_id
+            INNER JOIN company c ON ucm.company_id = c.company_id
             WHERE e.email = ?
             GROUP BY e.employee_id`, [email]);
         if (result.length === 0) {
