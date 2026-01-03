@@ -26,7 +26,7 @@ async (req,res)=>{
                 e.joining_date, e.created_at, d.department_name
             FROM employees e
             INNER JOIN user_company_mapping ucm ON e.employee_id = ucm.employee_id
-            LEFT JOIN departments d ON e.department_id = d.department_id
+            LEFT JOIN department d ON e.department_id = d.department_id
             WHERE ucm.company_id = ?
             ORDER BY e.employee_id DESC
             LIMIT ? OFFSET ?`;
