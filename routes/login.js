@@ -14,7 +14,15 @@ app.post("/",async (req, res) => {
 
     
     try {
-        const [result] = await db.query('SELECT * FROM employees WHERE email = ? ', [email]);
+        const [result] = await db.query(`SELECT 
+                e.*, 
+                GROUP_CONCAT(c.company_name) as company_names,
+                GROUP_CONCAT(c.company_id) as company_ids
+            FROM employees e
+            INNER JOIN user_company_mapping ucm ON e.employee_id = ucm.employee_id
+            INNER JOIN companies c ON ucm.company_id = c.company_id
+            WHERE e.email = ?
+            GROUP BY e.employee_id`, [email]);
         if (result.length === 0) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }

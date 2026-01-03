@@ -28,10 +28,11 @@ app.use(cors(cors_options));
 app.use(cookieParser());
 
 const login = require('./routes/login');
+const employee = require('./routes/team_management/employees');
 
 
 app.use("/login",login);
-
+app.use("/employees",employee);
 // Basic Test Route
 app.get('/', (req, res) => {
   res.json({ status: 'active', message: 'Accounting API is running' });
