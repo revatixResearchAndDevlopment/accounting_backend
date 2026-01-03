@@ -31,8 +31,8 @@ app.post("/",async (req, res) => {
         if (!pass_check) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
-
-        return res.status(200).json({success: true, message: 'Login successful',  id: user.user_id, email: user.email , name : user.name });
+        
+        return res.status(200).json({success: true, message: 'Login successful',  id: user.user_id, email: user.email , name : user.name,company_id : user.company_ids ? user.company_ids.split(',') : [], company_names: user.company_names ? user.company_names.split(',') : [] });
     } catch (error) {
         console.error('Error during login:', error);
         return res.status(500).json({ message: 'Internal server error' });

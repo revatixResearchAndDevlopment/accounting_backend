@@ -52,7 +52,7 @@ async (req,res)=>{
     }
 })
 .post(async (req,res)=>{
-    const { 
+   const { 
         name, 
         email, 
         password, 
@@ -62,19 +62,18 @@ async (req,res)=>{
         company_id 
     } = req.body;
 
-    // 1. Basic Validation
-    if (!email || !company_id) {
+    // 1. Validation for all required fields
+    if (!email || !password || !name || !company_id || !department_id) {
         return res.status(400).json({ 
             success: false, 
-            message: "Email and Company ID are required fields." 
+            message: "Missing required fields: name, email, password, department, and company_id are mandatory." 
         });
     }
 
     try {
-        // Set IST for the session
         await db.query("SET time_zone = '+05:30'");
 
-        // 2. Check if the employee email exists globally
+        // 2. Global Email Check
         const [existingUser] = await db.query(
             "SELECT employee_id FROM employees WHERE email = ?", 
             [email]
@@ -85,7 +84,7 @@ async (req,res)=>{
         if (existingUser.length > 0) {
             targetEmployeeId = existingUser[0].employee_id;
 
-            // 3. Check if this specific user is already linked to the current company
+            // Check if already linked to this company
             const [existingMapping] = await db.query(
                 "SELECT * FROM user_company_mapping WHERE employee_id = ? AND company_id = ?",
                 [targetEmployeeId, company_id]
@@ -94,21 +93,25 @@ async (req,res)=>{
             if (existingMapping.length > 0) {
                 return res.status(400).json({ 
                     success: false, 
-                    message: "User already exists within this organization." 
+                    message: "This user is already a member of your company." 
                 });
             }
         } else {
-            // 4. Create new employee record if email is unique globally
-            // Note: In a real world app, you'd hash the password here
+            // 3. Password Encryption
+            // Higher saltRounds (10) means more secure but slower hashing
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(password, salt);
+
+            // 4. Insert New Employee with Encrypted Password
             const [newUser] = await db.query(
                 `INSERT INTO employees (name, email, password, designation, department_id, joining_date) 
                  VALUES (?, ?, ?, ?, ?, ?)`,
-                [name, email, password, designation, department_id, joining_date]
+                [name, email, hashedPassword, designation, department_id, joining_date]
             );
             targetEmployeeId = newUser.insertId;
         }
 
-        // 5. Create the mapping link to connect this employee to the company
+        // 5. Create the Company Mapping
         await db.query(
             "INSERT INTO user_company_mapping (employee_id, company_id) VALUES (?, ?)",
             [targetEmployeeId, company_id]
@@ -116,17 +119,13 @@ async (req,res)=>{
 
         res.status(201).json({ 
             success: true, 
-            message: "Employee successfully added and linked to company.",
+            message: "Employee created and encrypted password stored.",
             employee_id: targetEmployeeId 
         });
 
     } catch (error) {
         console.error("POST Error:", error);
-        res.status(500).json({ 
-            success: false, 
-            message: "Internal Server Error",
-            error: error.message 
-        });
+        res.status(500).json({ success: false, message: error.message });
     }
 })
 .put(async (req,res)=>{
