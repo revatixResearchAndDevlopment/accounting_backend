@@ -188,14 +188,26 @@ app
   })
   .delete(async (req, res) => {
     try {
-        const { employee_id } = req.body; // Changed from user_id to employee_id
+        // Change from user_id to employee_id to match your DB column
+        const { employee_id } = req.body;
+
         if (!employee_id) {
-            return res.status(400).json({ success: false, message: "employee_id is required" });
+            return res.status(400).json({ 
+                success: false, 
+                message: "employee_id is required to delete." 
+            });
         }
-        
-        await db.query("DELETE FROM employees WHERE employee_id = ?", [employee_id]);
+
+        // Use employee_id in the WHERE clause
+        const [result] = await db.query("DELETE FROM employees WHERE employee_id = ?", [employee_id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Employee not found." });
+        }
+
         res.json({ success: true, message: "Employee Deleted" });
     } catch (error) {
+        console.error("DELETE Error:", error);
         res.status(500).json({ success: false, message: error.message });
     }
   });
