@@ -24,7 +24,7 @@ app
       const dataSql = `
             SELECT 
                 e.employee_id, e.name, e.email, e.designation, 
-                e.joining_date, e.created_at, d.department_name
+                e.joining_date, e.created_at, ,e.department_id,d.department_name
             FROM employees e
             INNER JOIN user_company_mapping ucm ON e.employee_id = ucm.employee_id
             LEFT JOIN department d ON e.department_id = d.department_id
