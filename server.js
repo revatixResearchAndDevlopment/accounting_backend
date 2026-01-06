@@ -35,10 +35,13 @@ app.use(cookieParser());
 const login = require("./routes/login");
 const employee = require("./routes/team_management/employees");
 const products = require("./routes/Products/products");
+const units = require("./routes/Products/units");
+
 
 app.use("/login", login);
 app.use("/api/employees", employee);
 app.use("/api/products", products);
+app.use("/api/units", units);
 // Basic Test Route
 app.get("/", (req, res) => {
   res.json({ status: "active", message: "Accounting API is running" });
