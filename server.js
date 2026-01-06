@@ -35,7 +35,8 @@ app.use(cookieParser());
 const login = require("./routes/login");
 const employee = require("./routes/team_management/employees");
 const products = require("./routes/Products/products");
-const units = require("./routes/Products/units");
+const units = require("./routes/accounting/units");
+const states = require("./routes/accounting/states");
 const registration_type = require("./routes/contacts/registration_types");
 const customers = require("./routes/contacts/customers");
 
@@ -44,6 +45,7 @@ app.use("/login", login);
 app.use("/api/employees", employee);
 app.use("/api/products", products);
 app.use("/api/units", units);
+app.use("/api/states", states);
 app.use("/api/registration_type", registration_type);
 app.use("/api/customers", customers);
 // Basic Test Route
