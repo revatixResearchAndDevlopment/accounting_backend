@@ -36,12 +36,16 @@ const login = require("./routes/login");
 const employee = require("./routes/team_management/employees");
 const products = require("./routes/Products/products");
 const units = require("./routes/Products/units");
+const registration_type = require("./routes/contacts/registration_types");
+const cusstomers = require("./routes/contacts/customers");
 
 
 app.use("/login", login);
 app.use("/api/employees", employee);
 app.use("/api/products", products);
 app.use("/api/units", units);
+app.use("/api/registration_type", registration_type);
+app.use("/api/cusstomers", cusstomers);
 // Basic Test Route
 app.get("/", (req, res) => {
   res.json({ status: "active", message: "Accounting API is running" });
