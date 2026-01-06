@@ -1,20 +1,20 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
+const express = require("express");
+const bcrypt = require("bcryptjs");
 
 const app = express();
 app.use(express.json());
-const db = require('../config/db_config');
+const db = require("../config/db_config");
 
-app.post("/",async (req, res) => {
-    const { email, password } = req.body;
-    
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email and password are required' });
-    }
+app.post("/", async (req, res) => {
+  const { email, password } = req.body;
 
-    
-    try {
-        const [result] = await db.query(`SELECT 
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
+
+  try {
+    const [result] = await db.query(
+      `SELECT 
                 e.*, 
                 GROUP_CONCAT(c.company_name) as company_names,
                 GROUP_CONCAT(c.company_id) as company_ids
@@ -22,21 +22,33 @@ app.post("/",async (req, res) => {
             INNER JOIN user_company_mapping ucm ON e.employee_id = ucm.employee_id
             INNER JOIN company c ON ucm.company_id = c.company_id
             WHERE e.email = ?
-            GROUP BY e.employee_id`, [email]);
-        if (result.length === 0) {
-            return res.status(401).json({ message: 'Invalid email or password' });
-        }
-        const user = result[0];
-        const pass_check = await bcrypt.compare(password, user.password);
-        if (!pass_check) {
-            return res.status(401).json({ message: 'Invalid email or password' });
-        }
-        
-        return res.status(200).json({success: true, message: 'Login successful',  id: user.user_id, email: user.email , name : user.name,company_id : user.company_ids ? user.company_ids.split(',') : [], company_names: user.company_names ? user.company_names.split(',') : [] });
-    } catch (error) {
-        console.error('Error during login:', error);
-        return res.status(500).json({ message: 'Internal server error' });
+            GROUP BY e.employee_id`,
+      [email]
+    );
+    if (result.length === 0) {
+      return res.status(401).json({ message: "Invalid email or password" });
     }
+    const user = result[0];
+    const pass_check = await bcrypt.compare(password, user.password);
+    if (!pass_check) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    return res
+      .status(200)
+      .json({
+        success: true,
+        message: "Login successful",
+        id: user.user_id,
+        email: user.email,
+        name: user.name,
+        company_id: user.company_ids ? user.company_ids.split(",") : [],
+        company_names: user.company_names ? user.company_names.split(",") : [],
+      });
+  } catch (error) {
+    console.error("Error during login:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 module.exports = app;

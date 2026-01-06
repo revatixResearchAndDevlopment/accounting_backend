@@ -53,13 +53,11 @@ app
         },
       });
     } catch (error) {
-      res
-        .status(500)
-        .json({
-          success: false,
-          message: "Internal server error",
-          error: error.message,
-        });
+      res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
     }
   })
   .post(async (req, res) => {
@@ -188,27 +186,32 @@ app
   })
   .delete(async (req, res) => {
     try {
-        // Change from user_id to employee_id to match your DB column
-        const { employee_id } = req.body;
+      // Change from user_id to employee_id to match your DB column
+      const { employee_id } = req.body;
 
-        if (!employee_id) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "employee_id is required to delete." 
-            });
-        }
+      if (!employee_id) {
+        return res.status(400).json({
+          success: false,
+          message: "employee_id is required to delete.",
+        });
+      }
 
-        // Use employee_id in the WHERE clause
-        const [result] = await db.query("DELETE FROM employees WHERE employee_id = ?", [employee_id]);
+      // Use employee_id in the WHERE clause
+      const [result] = await db.query(
+        "DELETE FROM employees WHERE employee_id = ?",
+        [employee_id]
+      );
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: "Employee not found." });
-        }
+      if (result.affectedRows === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Employee not found." });
+      }
 
-        res.json({ success: true, message: "Employee Deleted" });
+      res.json({ success: true, message: "Employee Deleted" });
     } catch (error) {
-        console.error("DELETE Error:", error);
-        res.status(500).json({ success: false, message: error.message });
+      console.error("DELETE Error:", error);
+      res.status(500).json({ success: false, message: error.message });
     }
   });
 
