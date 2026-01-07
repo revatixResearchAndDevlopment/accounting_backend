@@ -35,10 +35,12 @@ app.use(cookieParser());
 const login = require("./routes/login");
 const employee = require("./routes/team_management/employees");
 const products = require("./routes/Products/products");
-const units = require("./routes/accounting/units");
-const states = require("./routes/accounting/states");
+const units = require("./routes/Products/units");
+const states = require("./routes/contacts/states");
 const registration_type = require("./routes/contacts/registration_types");
 const customers = require("./routes/contacts/customers");
+const source_types = require("./routes/accounting/source_types");
+const sales_invoices = require("./routes/accounting/sales_invoice");
 
 
 app.use("/login", login);
@@ -48,6 +50,8 @@ app.use("/api/units", units);
 app.use("/api/states", states);
 app.use("/api/registration_type", registration_type);
 app.use("/api/customers", customers);
+app.use("/api/source_types",source_types );
+app.use("/api/sales_invoices",sales_invoices);
 // Basic Test Route
 app.get("/", (req, res) => {
   res.json({ status: "active", message: "Accounting API is running" });
