@@ -45,7 +45,7 @@ async function processInventoryAndLedger(conn, invoiceId, header, items, mode = 
         customer_id: header.customer_id,
         company_id: header.company_id,
         transaction_type_id: isPost ? 1 : 3,
-        transaction_id: invoiceId,
+        reference_id: invoiceId,
         transaction_date: new Date(),
         debit: isPost ? header.total_amount : 0,
         credit: isPost ? 0 : header.total_amount,
