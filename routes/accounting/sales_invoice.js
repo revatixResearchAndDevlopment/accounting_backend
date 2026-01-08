@@ -23,27 +23,55 @@ app.route("/")
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      const { items, ...header } = req.body;
+
+      // 1. Destructure to remove timestamps that cause "Incorrect datetime value"
+      // and helper fields that don't exist in the sales_invoices table
+      const { items, created_at, updated_at, ...header } = req.body;
+      
       header.status = header.status || 'Draft';
 
+      // 2. Insert into sales_invoices (Header)
+      // Ensure frontend is sending 'total_taxable_value' matching your schema
       const [inv] = await conn.query("INSERT INTO sales_invoices SET ?", [header]);
       const invoiceId = inv.insertId;
 
-      const itemValues = items.map(item => [
-        invoiceId, item.product_id, item.hsn_sac, item.quantity, 
-        item.unit_price, item.taxable_value, item.gst_rate, 
-        item.cgst_amount, item.sgst_amount, item.igst_amount, item.total_item_amount
-      ]);
-      await conn.query("INSERT INTO sales_invoice_items (invoice_id, product_id, hsn_sac, quantity, unit_price, taxable_value, gst_rate, cgst_amount, sgst_amount, igst_amount, total_item_amount) VALUES ?", [itemValues]);
+      // 3. Filter out any "ghost" items (where product_id is empty)
+      const validItems = items.filter(item => item.product_id && item.product_id !== "");
 
+      if (validItems.length > 0) {
+        const itemValues = validItems.map(item => [
+          invoiceId, 
+          item.product_id, 
+          item.hsn_sac || "", 
+          item.quantity, 
+          item.unit_price, 
+          item.taxable_value, 
+          item.gst_rate, 
+          item.cgst_amount || 0, 
+          item.sgst_amount || 0, 
+          item.igst_amount || 0, 
+          item.total_item_amount
+        ]);
+
+        // 4. Insert into sales_invoice_items (Details)
+        // Using explicit column names to match your schema (Image 3)
+        await conn.query(`
+          INSERT INTO sales_invoice_items 
+          (invoice_id, product_id, hsn_sac, quantity, unit_price, taxable_value, gst_rate, cgst_amount, sgst_amount, igst_amount, total_item_amount) 
+          VALUES ?`, [itemValues]);
+      }
+
+      // 5. Trigger Inventory/Ledger Engine if status is Active
       if (header.status === 'Active') {
-        await processInventoryAndLedger(conn, invoiceId, header, items, 'POST');
+        // We pass validItems to the engine to ensure no empty rows are processed
+        await processInventoryAndLedger(conn, invoiceId, header, validItems, 'POST');
       }
 
       await conn.commit();
       res.status(201).json({ success: true, invoice_id: invoiceId });
     } catch (error) {
       await conn.rollback();
+      // This will now catch "Unknown column" or "Incorrect integer" errors
       res.status(400).json({ success: false, message: error.message });
     } finally {
       conn.release();
