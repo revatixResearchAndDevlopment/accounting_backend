@@ -23,24 +23,21 @@ app.route("/")
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
+      // 1. Remove timestamps and helper fields
+      const { invoice_id, items, created_at, updated_at, ...header } = req.body;
 
-      // 1. Destructure to remove timestamps that cause "Incorrect datetime value"
-      // and helper fields that don't exist in the sales_invoices table
-      const { items, created_at, updated_at, ...header } = req.body;
-      
-      header.status = header.status || 'Draft';
+      // 2. Update Header
+      await conn.query("UPDATE sales_invoices SET ? WHERE invoice_id = ?", [header, invoice_id]);
 
-      // 2. Insert into sales_invoices (Header)
-      // Ensure frontend is sending 'total_taxable_value' matching your schema
-      const [inv] = await conn.query("INSERT INTO sales_invoices SET ?", [header]);
-      const invoiceId = inv.insertId;
+      // 3. Delete old items
+      await conn.query("DELETE FROM sales_invoice_items WHERE invoice_id = ?", [invoice_id]);
 
-      // 3. Filter out any "ghost" items (where product_id is empty)
+      // 4. Filter and Insert new items (FIXED SYNTAX)
       const validItems = items.filter(item => item.product_id && item.product_id !== "");
-
+      
       if (validItems.length > 0) {
         const itemValues = validItems.map(item => [
-          invoiceId, 
+          invoice_id, 
           item.product_id, 
           item.hsn_sac || "", 
           item.quantity, 
@@ -53,25 +50,23 @@ app.route("/")
           item.total_item_amount
         ]);
 
-        // 4. Insert into sales_invoice_items (Details)
-        // Using explicit column names to match your schema (Image 3)
-        await conn.query(`
-          INSERT INTO sales_invoice_items 
+        // Explicitly list all 11 columns. DO NOT use (...)
+        const sql = `INSERT INTO sales_invoice_items 
           (invoice_id, product_id, hsn_sac, quantity, unit_price, taxable_value, gst_rate, cgst_amount, sgst_amount, igst_amount, total_item_amount) 
-          VALUES ?`, [itemValues]);
+          VALUES ?`;
+        
+        await conn.query(sql, [itemValues]);
       }
 
-      // 5. Trigger Inventory/Ledger Engine if status is Active
+      // 5. If status is Active, run inventory engine
       if (header.status === 'Active') {
-        // We pass validItems to the engine to ensure no empty rows are processed
-        await processInventoryAndLedger(conn, invoiceId, header, validItems, 'POST');
+        await processInventoryAndLedger(conn, invoice_id, header, validItems, 'POST');
       }
 
       await conn.commit();
-      res.status(201).json({ success: true, invoice_id: invoiceId });
+      res.json({ success: true });
     } catch (error) {
       await conn.rollback();
-      // This will now catch "Unknown column" or "Incorrect integer" errors
       res.status(400).json({ success: false, message: error.message });
     } finally {
       conn.release();
