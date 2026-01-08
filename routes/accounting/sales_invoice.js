@@ -19,10 +19,40 @@ app.route("/")
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }
-  })
+  }).get("/detail/:invoice_id", async (req, res) => {
+  try {
+    const { invoice_id } = req.params;
+    
+    // Fetch Header with Customer and Company details
+    const [headerRows] = await db.query(`
+      SELECT si.*, c.customer_name, c.billing_address, c.mobile, 
+             comp.company_name, comp.address as company_address, comp.gstin as company_gstin
+      FROM sales_invoices si
+      JOIN customers c ON si.customer_id = c.customer_id
+      JOIN company comp ON si.company_id = comp.company_id
+      WHERE si.invoice_id = ?`, [invoice_id]);
 
-  // POST: Create new (Defaults to Draft)
-  .post(async (req, res) => {
+    if (headerRows.length === 0) return res.status(404).json({ success: false, message: "Invoice not found" });
+
+    // Fetch Items with Product Names
+    const [itemRows] = await db.query(`
+      SELECT sii.*, p.product_name 
+      FROM sales_invoice_items sii
+      JOIN products p ON sii.product_id = p.product_id
+      WHERE sii.invoice_id = ?`, [invoice_id]);
+
+    res.json({ success: true, header: headerRows[0], items: itemRows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}).get("/items/:invoice_id", async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT * FROM sales_invoice_items WHERE invoice_id = ?", [req.params.invoice_id]);
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+}).post(async (req, res) => {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
@@ -51,10 +81,7 @@ app.route("/")
     } finally {
       conn.release();
     }
-  })
-
-  // PUT: Update Draft
-  .put(async (req, res) => {
+  }).put(async (req, res) => {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
