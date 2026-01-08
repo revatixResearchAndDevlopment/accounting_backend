@@ -26,7 +26,7 @@ async function processInventoryAndLedger(conn, invoiceId, header, items, mode = 
         // 2. Update Stock Map
         const qtyModifier = isPost ? -item.quantity : item.quantity;
         await conn.query(
-            "UPDATE inventory_company_map SET quantity = quantity + ? WHERE product_id = ? AND company_id = ?",
+            "UPDATE inventory_company_map SET current_stock = current_stock + ? WHERE product_id = ? AND company_id = ?",
             [qtyModifier, item.product_id, header.company_id]
         );
 
