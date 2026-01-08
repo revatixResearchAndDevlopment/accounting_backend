@@ -15,10 +15,10 @@ async function processInventoryAndLedger(conn, invoiceId, header, items, mode = 
         // 1. Check Negative Inventory Settings if Posting
         if (isPost) {
             const [stock] = await conn.query(
-                "SELECT quantity, allow_negative_inventory FROM inventory_company_map WHERE product_id = ? AND company_id = ?",
+                "SELECT current_stock , allow_negative_inventory FROM inventory_company_map WHERE product_id = ? AND company_id = ?",
                 [item.product_id, header.company_id]
             );
-            if (!stock[0]?.allow_negative_inventory && (stock[0]?.quantity || 0) < item.quantity) {
+            if (!stock[0]?.allow_negative_inventory && (stock[0]?.current_stock  || 0) < item.current_stock ) {
                 throw new Error(`Insufficient stock for Product ID ${item.product_id}`);
             }
         }
