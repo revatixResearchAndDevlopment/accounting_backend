@@ -44,6 +44,7 @@ app.post("/", async (req, res) => {
         name: user.name,
         company_id: user.company_ids ? user.company_ids.split(",") : [],
         company_names: user.company_names ? user.company_names.split(",") : [],
+        designation:user.designation,
       });
   } catch (error) {
     console.error("Error during login:", error);
