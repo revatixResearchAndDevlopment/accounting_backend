@@ -8,25 +8,65 @@ app.use(express.json());
 app.route("/")
   // GET: List invoices
   .get(async (req, res) => {
-    try {
-      const { company_id } = req.query;
-      const [rows] = await db.query(`
+  try {
+    // Set Timezone to IST for the session
+    await db.query("SET time_zone = '+05:30'");
+
+    const { company_id } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 250;
+    const offset = (page - 1) * limit;
+
+    if (!company_id) {
+      return res.status(400).json({ success: false, message: "company_id is required" });
+    }
+
+    // Updated Query: includes invoice_date and created_at
+    const dataSql = `
         SELECT 
-            si.*, 
+            si.invoice_id,
+            si.invoice_number,
+            si.invoice_date,
+            si.status,
+            si.total_amount,
+            si.created_at,
             c.customer_name,
+            c.customer_id,
             (SELECT SUM(quantity) FROM sales_invoice_items WHERE invoice_id = si.invoice_id) as total_qty
         FROM sales_invoices si
         JOIN customers c ON si.customer_id = c.customer_id
         WHERE si.company_id = ? 
-        ORDER BY si.created_at DESC`, [company_id]);
-      res.json({ success: true, data: rows });
-    } catch (error) {
-      res.status(500).json({ success: false, message: error.message });
-    }
-  }).post(async (req, res) => {
+        ORDER BY si.created_at DESC
+        LIMIT ? OFFSET ?`;
+
+    const [rows] = await db.query(dataSql, [
+      parseInt(company_id),
+      limit + 1, // Fetch one extra to check for 'hasMore'
+      offset,
+    ]);
+
+    const hasMore = rows.length > limit;
+    const dataToSend = hasMore ? rows.slice(0, limit) : rows;
+
+    res.json({
+      success: true,
+      data: dataToSend,
+      metadata: {
+        currentPage: page,
+        limit,
+        hasMore: hasMore,
+        recordsInChunk: dataToSend.length,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Internal server error", error: error.message });
+  }
+}).post(async (req, res) => {
     const conn = await db.getConnection();
     try {
+      await conn.query("SET time_zone = '+05:30'");
       await conn.beginTransaction();
+
       // Remove IDs and timestamps for a fresh INSERT
       const { invoice_id, items, created_at, updated_at, ...header } = req.body;
       header.status = header.status || 'Draft';
