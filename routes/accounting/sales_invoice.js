@@ -23,34 +23,23 @@ app.route("/")
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      // 1. Remove timestamps and helper fields
+      // Remove IDs and timestamps for a fresh INSERT
       const { invoice_id, items, created_at, updated_at, ...header } = req.body;
+      header.status = header.status || 'Draft';
 
-      // 2. Update Header
-      await conn.query("UPDATE sales_invoices SET ? WHERE invoice_id = ?", [header, invoice_id]);
+      // 1. Insert Header
+      const [inv] = await conn.query("INSERT INTO sales_invoices SET ?", [header]);
+      const newInvoiceId = inv.insertId; 
 
-      // 3. Delete old items
-      await conn.query("DELETE FROM sales_invoice_items WHERE invoice_id = ?", [invoice_id]);
-
-      // 4. Filter and Insert new items (FIXED SYNTAX)
-      const validItems = items.filter(item => item.product_id && item.product_id !== "");
-      
+      // 2. Map valid items to the new ID
+      const validItems = items.filter(item => item.product_id);
       if (validItems.length > 0) {
         const itemValues = validItems.map(item => [
-          invoice_id, 
-          item.product_id, 
-          item.hsn_sac || "", 
-          item.quantity, 
-          item.unit_price, 
-          item.taxable_value, 
-          item.gst_rate, 
-          item.cgst_amount || 0, 
-          item.sgst_amount || 0, 
-          item.igst_amount || 0, 
-          item.total_item_amount
+          newInvoiceId, item.product_id, item.hsn_sac || "", item.quantity, 
+          item.unit_price, item.taxable_value, item.gst_rate, 
+          item.cgst_amount || 0, item.sgst_amount || 0, item.igst_amount || 0, item.total_item_amount
         ]);
 
-        // Explicitly list all 11 columns. DO NOT use (...)
         const sql = `INSERT INTO sales_invoice_items 
           (invoice_id, product_id, hsn_sac, quantity, unit_price, taxable_value, gst_rate, cgst_amount, sgst_amount, igst_amount, total_item_amount) 
           VALUES ?`;
@@ -58,37 +47,48 @@ app.route("/")
         await conn.query(sql, [itemValues]);
       }
 
-      // 5. If status is Active, run inventory engine
+      // 3. Inventory logic (only if Active)
       if (header.status === 'Active') {
-        await processInventoryAndLedger(conn, invoice_id, header, validItems, 'POST');
+        await processInventoryAndLedger(conn, newInvoiceId, header, validItems, 'POST');
       }
 
       await conn.commit();
-      res.json({ success: true });
+      res.status(201).json({ success: true, invoice_id: newInvoiceId });
     } catch (error) {
       await conn.rollback();
       res.status(400).json({ success: false, message: error.message });
     } finally {
       conn.release();
     }
-  }).put(async (req, res) => {
+  })
+  .put(async (req, res) => {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      const { invoice_id, items, ...header } = req.body;
+      const { invoice_id, items, created_at, updated_at, ...header } = req.body;
 
-      const [existing] = await conn.query("SELECT status FROM sales_invoices WHERE invoice_id = ?", [invoice_id]);
-      if (existing[0]?.status !== 'Draft') throw new Error("Only Drafts can be edited.");
+      if (!invoice_id) throw new Error("Invoice ID is required for update");
 
+      // 1. Update Header
       await conn.query("UPDATE sales_invoices SET ? WHERE invoice_id = ?", [header, invoice_id]);
+
+      // 2. Delete and Refresh Items
       await conn.query("DELETE FROM sales_invoice_items WHERE invoice_id = ?", [invoice_id]);
       
-      const itemValues = items.map(item => [
-        invoice_id, item.product_id, item.hsn_sac, item.quantity, 
-        item.unit_price, item.taxable_value, item.gst_rate, 
-        item.cgst_amount, item.sgst_amount, item.igst_amount, item.total_item_amount
-      ]);
-      await conn.query("INSERT INTO sales_invoice_items (...) VALUES ?", [itemValues]);
+      const validItems = items.filter(item => item.product_id);
+      if (validItems.length > 0) {
+        const itemValues = validItems.map(item => [
+          invoice_id, item.product_id, item.hsn_sac || "", item.quantity, 
+          item.unit_price, item.taxable_value, item.gst_rate, 
+          item.cgst_amount || 0, item.sgst_amount || 0, item.igst_amount || 0, item.total_item_amount
+        ]);
+
+        const sql = `INSERT INTO sales_invoice_items 
+          (invoice_id, product_id, hsn_sac, quantity, unit_price, taxable_value, gst_rate, cgst_amount, sgst_amount, igst_amount, total_item_amount) 
+          VALUES ?`;
+        
+        await conn.query(sql, [itemValues]);
+      }
 
       await conn.commit();
       res.json({ success: true, message: "Draft updated" });

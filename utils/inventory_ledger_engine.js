@@ -14,14 +14,17 @@ async function processInventoryAndLedger(conn, invoiceId, header, items, mode = 
     for (const item of items) {
         // 1. Check Negative Inventory Settings if Posting
         if (isPost) {
-            const [stock] = await conn.query(
-                "SELECT current_stock , allow_negative_inventory FROM inventory_company_map WHERE product_id = ? AND company_id = ?",
-                [item.product_id, header.company_id]
-            );
-            if (!stock[0]?.allow_negative_inventory && (stock[0]?.current_stock  || 0) < item.current_stock ) {
-                throw new Error(`Insufficient stock for Product ID ${item.product_id}`);
-            }
-        }
+    const [stockRows] = await conn.query(
+        "SELECT current_stock, allow_negative_inventory FROM inventory_company_map WHERE product_id = ? AND company_id = ?",
+        [item.product_id, header.company_id]
+    );
+    
+    const stock = stockRows[0];
+    // FIX: Compare against item.quantity, not item.current_stock
+    if (!stock?.allow_negative_inventory && (Number(stock?.current_stock) || 0) < Number(item.quantity)) {
+        throw new Error(`Insufficient stock for Product ID ${item.product_id}. Available: ${stock?.current_stock || 0}`);
+    }
+}
 
         // 2. Update Stock Map
         const qtyModifier = isPost ? -item.quantity : item.quantity;
