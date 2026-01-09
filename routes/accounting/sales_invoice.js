@@ -11,10 +11,14 @@ app.route("/")
     try {
       const { company_id } = req.query;
       const [rows] = await db.query(`
-        SELECT si.*, c.customer_name 
+        SELECT 
+            si.*, 
+            c.customer_name,
+            (SELECT SUM(quantity) FROM sales_invoice_items WHERE invoice_id = si.invoice_id) as total_qty
         FROM sales_invoices si
         JOIN customers c ON si.customer_id = c.customer_id
-        WHERE si.company_id = ? ORDER BY si.invoice_date DESC`, [company_id]);
+        WHERE si.company_id = ? 
+        ORDER BY si.created_at DESC`, [company_id]);
       res.json({ success: true, data: rows });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
