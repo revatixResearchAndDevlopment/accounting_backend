@@ -54,7 +54,6 @@ const [countResult] = await db.query(
 
     res.json({
       success: true,
-      data: dataToSend,
       metadata: {
         currentPage: page,
         limit,
@@ -63,6 +62,7 @@ const [countResult] = await db.query(
         totalPages: Math.ceil(totalRecords / limit),
         recordsInChunk: dataToSend.length,
       },
+      data: dataToSend,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal server error", error: error.message });

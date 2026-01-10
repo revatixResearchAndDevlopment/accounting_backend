@@ -31,7 +31,11 @@ app
             WHERE ucm.company_id = ?
             ORDER BY e.employee_id DESC
             LIMIT ? OFFSET ?`;
-
+const [countResult] = await db.query(
+      "SELECT COUNT(*) as total FROM employees WHERE company_id = ?", 
+      [parseInt(company_id)]
+    );
+    const totalRecords = countResult[0].total;
       const [rows] = await db.query(dataSql, [
         parseInt(company_id),
         limit + 1,
@@ -44,13 +48,15 @@ app
 
       res.json({
         success: true,
-        data: dataToSend,
         metadata: {
           currentPage: page,
           limit,
           hasMore: hasMore,
+          totalCount:totalRecords,
+          totalPages:Math.ceil(totalRecords/limit),
           recordsInChunk: dataToSend.length,
         },
+        data: dataToSend,
       });
     } catch (error) {
       res.status(500).json({
