@@ -20,7 +20,11 @@ app.route("/")
     if (!company_id) {
       return res.status(400).json({ success: false, message: "company_id is required" });
     }
-
+const [countResult] = await db.query(
+      "SELECT COUNT(*) as total FROM sales_invoices WHERE company_id = ?", 
+      [parseInt(company_id)]
+    );
+    const totalRecords = countResult[0].total;
     // Updated Query: includes invoice_date and created_at
     const dataSql = `
         SELECT 
@@ -55,6 +59,8 @@ app.route("/")
         currentPage: page,
         limit,
         hasMore: hasMore,
+        totalCount: totalRecords,
+        totalPages: Math.ceil(totalRecords / limit),
         recordsInChunk: dataToSend.length,
       },
     });
