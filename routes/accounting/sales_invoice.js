@@ -174,8 +174,8 @@ app.get("/detail/:invoice_id", async (req, res) => {
   try {
     const { invoice_id } = req.params;
     const [headerRows] = await db.query(`
-      SELECT si.*, c.customer_name, c.billing_address, c.mobile, 
-             comp.company_name, comp.address as company_address, comp.gstin as company_gstin
+      SELECT si.*, c.customer_name, c.billing_address, c.phone, 
+             comp.company_name, comp.comapny_address as company_address, comp.gstin as company_gstin
       FROM sales_invoices si
       JOIN customers c ON si.customer_id = c.customer_id
       JOIN company comp ON si.company_id = comp.company_id
@@ -184,7 +184,7 @@ app.get("/detail/:invoice_id", async (req, res) => {
     if (headerRows.length === 0) return res.status(404).json({ success: false, message: "Invoice not found" });
 
     const [itemRows] = await db.query(`
-      SELECT sii.*, p.product_name 
+      SELECT sii.*, p.name 
       FROM sales_invoice_items sii
       JOIN products p ON sii.product_id = p.product_id
       WHERE sii.invoice_id = ?`, [invoice_id]);
