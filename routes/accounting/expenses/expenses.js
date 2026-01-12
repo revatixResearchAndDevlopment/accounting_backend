@@ -88,41 +88,38 @@ app
     }
   })
   .put(async (req, res) => {
-    const { expense_id, ...updateFields } = req.body;
+  const { 
+    expense_id, 
+    category_name, mode_name, recorded_by_name, department_name, transaction_type_name, // Destructure these to exclude them
+    ...updateFields 
+  } = req.body;
 
-    if (!expense_id) {
-      return res
-        .status(400)
-        .json({ success: false, message: "expense_id is required" });
+  if (!expense_id) {
+    return res.status(400).json({ success: false, message: "expense_id is required" });
+  }
+
+  try {
+    const fields = Object.keys(updateFields);
+    if (fields.length === 0) {
+      return res.status(400).json({ success: false, message: "No fields provided for update" });
     }
 
-    try {
-      const fields = Object.keys(updateFields);
-      if (fields.length === 0) {
-        return res
-          .status(400)
-          .json({ success: false, message: "No fields provided for update" });
-      }
+    const setClause = fields.map((field) => `${field} = ?`).join(", ");
+    const values = fields.map((field) => updateFields[field]);
+    values.push(expense_id);
 
-      const setClause = fields.map((field) => `${field} = ?`).join(", ");
-      const values = fields.map((field) => updateFields[field]);
-      values.push(expense_id);
+    const sql = `UPDATE expenses SET ${setClause} WHERE expense_id = ?`;
+    const [result] = await db.query(sql, values);
 
-      const sql = `UPDATE expenses SET ${setClause} WHERE expense_id = ?`;
-
-      const [result] = await db.query(sql, values);
-
-      if (result.affectedRows === 0) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Expense record not found" });
-      }
-
-      res.json({ success: true, message: "Expense updated successfully" });
-    } catch (error) {
-      res.status(500).json({ success: false, message: error.message });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "Expense record not found" });
     }
-  })
+
+    res.json({ success: true, message: "Expense updated successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+})
   .delete(async (req, res) => {
     try {
       const { expense_id } = req.body;
