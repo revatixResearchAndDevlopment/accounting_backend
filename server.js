@@ -44,6 +44,7 @@ const sales_invoices = require("./routes/accounting/sales/sales_invoice");
 const expenes = require("./routes/accounting/expenses/expenses");
 const expense_categories = require("./routes/accounting/expenses/expense_categories");
 const payment_modes = require("./routes/accounting/payment_modes");
+const transaction_types = require("./routes/accounting/transaction_types");
 
 
 app.use("/login", login);
@@ -58,6 +59,7 @@ app.use("/api/sales_invoices",sales_invoices);
 app.use("/api/expenes",expenes);
 app.use("/api/expense_categories",expense_categories);
 app.use("/api/payment_modes",payment_modes);
+app.use("/api/transaction_types",transaction_types);
 // Basic Test Route
 app.get("/", (req, res) => {
   res.json({ status: "active", message: "Accounting API is running" });
