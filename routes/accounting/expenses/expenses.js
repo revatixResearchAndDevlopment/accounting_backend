@@ -90,7 +90,14 @@ app
   .put(async (req, res) => {
   const { 
     expense_id, 
-    category_name, mode_name, recorded_by_name, department_name, transaction_type_name, // Destructure these to exclude them
+    // Destructure and ignore these fields so they aren't sent to the DB update
+    category_name, 
+    mode_name, 
+    recorded_by_name, 
+    department_name, 
+    transaction_type_name,
+    created_at, 
+    updated_at,
     ...updateFields 
   } = req.body;
 
@@ -104,6 +111,7 @@ app
       return res.status(400).json({ success: false, message: "No fields provided for update" });
     }
 
+    // Build the query using only the remaining valid database columns
     const setClause = fields.map((field) => `${field} = ?`).join(", ");
     const values = fields.map((field) => updateFields[field]);
     values.push(expense_id);
@@ -117,6 +125,7 @@ app
 
     res.json({ success: true, message: "Expense updated successfully" });
   } catch (error) {
+    console.error("PUT Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 })
