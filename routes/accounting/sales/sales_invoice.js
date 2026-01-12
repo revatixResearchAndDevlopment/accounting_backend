@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
-const db = require("../../config/db_config");
-const { processInventoryAndLedger } = require("../../utils/inventory_ledger_engine");
+const db = require("../../../config/db_config");
+const { processInventoryAndLedger } = require("../../../utils/inventory_ledger_engine");
 
 app.use(express.json());
 
