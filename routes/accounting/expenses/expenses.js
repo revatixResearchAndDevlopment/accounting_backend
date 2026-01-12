@@ -163,12 +163,21 @@ app.get("/detail", async (req, res) => {
   try {
     const { id } = req.query;
     const [rows] = await db.query(`
-      SELECT e.*, ec.category_name, pm.mode_name, emp.name as recorded_by_name
+    SELECT 
+        e.*, 
+        ec.category_name, 
+        pm.mode_name, 
+        emp.name as recorded_by_name,
+        d.department_name
       FROM expenses e
       INNER JOIN expense_categories ec ON e.category_id = ec.category_id
       INNER JOIN payment_modes pm ON e.payment_mode_id = pm.payment_mode_id
       INNER JOIN employees emp ON e.employee_id = emp.employee_id
+      LEFT JOIN department d ON e.department_id = d.department_id
       WHERE e.expense_id = ?`, [id]);
+      if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Expense not found" });
+    }
     res.json({ success: true, data: rows });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
